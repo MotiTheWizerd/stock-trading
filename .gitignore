@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local data files
+data/
+!data/README.md  # Keep README if it exists
+
+# Logs
+*.log
+logs/
+
+# Local config overrides
+.env
+.env.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backups
+*~
+*_backup_*
+!*_backup_*.csv  # Keep CSV backups since we write them in code
+
+# Local development
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Poetry
+poetry.lock
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Project specific
+*.csv
+!requirements*.txt
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+*.xlsx

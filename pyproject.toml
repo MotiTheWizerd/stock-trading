@@ -1,0 +1,20 @@
+[project]
+name = "trading-stock-agents"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "MotiTheWizerd",email = "motielmakayes@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "yfinance (>=0.2.64,<0.3.0)",
+    "matplotlib (>=3.10.3,<4.0.0)",
+    "mplfinance (>=0.12.10b0,<0.13.0)",
+    "ta (>=0.11.0,<0.12.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
