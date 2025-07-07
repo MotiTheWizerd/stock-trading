@@ -1,0 +1,32 @@
+{
+  "ticker": "AAPL",
+  "model_type": "randomforest",
+  "feature_columns": [
+    "Price",
+    "Adj Close",
+    "Close",
+    "High",
+    "Low",
+    "Open",
+    "Volume",
+    "Candle_Body",
+    "Upper_Shadow",
+    "Lower_Shadow",
+    "Volatility",
+    "Close_pct_change",
+    "Volume_pct_change",
+    "EMA_5",
+    "EMA_10",
+    "SMA_5",
+    "SMA_10",
+    "RSI_14",
+    "MACD",
+    "MACD_Signal",
+    "MACD_Hist",
+    "Bollinger_Upper",
+    "Bollinger_Lower",
+    "Bollinger_Mid"
+  ],
+  "training_timestamp": "20250707_135712",
+  "evaluation_results": {}
+}

@@ -217,6 +217,82 @@ def prepare_labeled_dataset(
 
 
 # ---------------------------------------------------------------------------
+# Feature engineering for model training
+# ---------------------------------------------------------------------------
+
+def prepare_feature_dataset(
+    ticker: str,
+    *,
+    date_folder: Optional[str] = None,
+    tolerance: str | pd.Timedelta = "10min",
+) -> pd.DataFrame:
+    """Return an ML-ready feature matrix + label for *ticker* on *date_folder*.
+
+    This helper builds on :func:`prepare_labeled_dataset` but narrows the output
+    to ONLY the features required by the modelling pipeline and encodes the
+    categorical columns as requested.
+
+    Features
+    --------
+    rsi, macd, macd_signal, macd_histogram, price_change, price_change_pct,
+    gap_from_open, volume_ratio, intraday_range, market_cap_proxy,
+    signal_strength (numeric), trend_direction (one-hot encoded).
+
+    The label column ``signal`` (BUY / SELL) is preserved **unmodified**.  All
+    other extraneous columns such as ``ticker``, ``price`` and any raw OHLCV
+    values are excluded.
+    """
+
+    df = prepare_labeled_dataset(
+        ticker, date_folder=date_folder, tolerance=tolerance
+    )
+
+    # -------------------------------------------------------------------
+    # 1. Keep only the core numerical features
+    # -------------------------------------------------------------------
+    base_cols = [
+        "rsi",
+        "macd",
+        "macd_signal",
+        "macd_histogram",
+        "price_change",
+        "price_change_pct",
+        "gap_from_open",
+        "volume_ratio",
+        "intraday_range",
+        "market_cap_proxy",
+    ]
+
+    required_cols = base_cols + ["signal_strength", "trend_direction", "signal"]
+    missing = set(required_cols) - set(df.columns)
+    if missing:
+        raise KeyError(
+            "The following required columns are missing after merging: "
+            + ", ".join(sorted(missing))
+        )
+
+    df_feat = df[required_cols].copy()
+
+    # -------------------------------------------------------------------
+    # 2. Encode *signal_strength* as numeric (STRONG → 1, WEAK → 0)
+    # -------------------------------------------------------------------
+    df_feat["signal_strength"] = df_feat["signal_strength"].map({"STRONG": 1, "WEAK": 0}).astype(int)
+
+    # -------------------------------------------------------------------
+    # 3. One-hot encode *trend_direction*
+    # -------------------------------------------------------------------
+    trend_dummies = pd.get_dummies(df_feat["trend_direction"], prefix="trend")
+    df_feat = pd.concat([df_feat.drop(columns=["trend_direction"]), trend_dummies], axis=1)
+
+    # Ensure a consistent column order: features first, label last
+    feature_cols = [c for c in df_feat.columns if c != "signal"]
+    ordered_cols = feature_cols + ["signal"]
+    df_feat = df_feat[ordered_cols]
+
+    return df_feat.reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
 # CLI helper for ad-hoc testing
 # ---------------------------------------------------------------------------
 

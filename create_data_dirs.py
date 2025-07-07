@@ -2,8 +2,7 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 
-# List of tickers
-TICKERS = ["AAPL", "MSFT", "TSLA"]
+from config import TICKERS  # Centralized ticker list
 
 def create_directory_structure():
     """Create the directory structure for each ticker"""

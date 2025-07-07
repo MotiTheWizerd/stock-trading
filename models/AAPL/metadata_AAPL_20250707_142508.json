@@ -1,0 +1,123 @@
+{
+  "ticker": "AAPL",
+  "model_type": "randomforest",
+  "feature_columns": [
+    "Price",
+    "Adj Close",
+    "Close",
+    "High",
+    "Low",
+    "Open",
+    "Volume",
+    "Candle_Body",
+    "Upper_Shadow",
+    "Lower_Shadow",
+    "Volatility",
+    "Close_pct_change",
+    "Volume_pct_change",
+    "EMA_5",
+    "EMA_10",
+    "SMA_5",
+    "SMA_10",
+    "RSI_14",
+    "MACD",
+    "MACD_Signal",
+    "MACD_Hist",
+    "Bollinger_Upper",
+    "Bollinger_Lower",
+    "Bollinger_Mid"
+  ],
+  "training_timestamp": "20250707_142508",
+  "evaluation_results": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "classification_report": {
+      "BUY": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 56.0
+      },
+      "NONE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2594.0
+      },
+      "SELL": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 106.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2756.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 2756.0
+      }
+    },
+    "confusion_matrix": "[[  56    0    0]\n [   0 2594    0]\n [   0    0  106]]",
+    "feature_importance": {
+      "Price": 0.0,
+      "Adj Close": 0.0,
+      "Close": 0.03432333118708282,
+      "High": 0.019216070587019175,
+      "Low": 0.015944173294975522,
+      "Open": 0.01653611646883727,
+      "Volume": 0.01691769142836627,
+      "Candle_Body": 0.005016285797478365,
+      "Upper_Shadow": 0.005932562980117968,
+      "Lower_Shadow": 0.002719760556639781,
+      "Volatility": 0.03002339899132843,
+      "Close_pct_change": 0.023956278014638,
+      "Volume_pct_change": 0.002936038801129946,
+      "EMA_5": 0.019237657499762747,
+      "EMA_10": 0.015403607924912755,
+      "SMA_5": 0.014518036931133668,
+      "SMA_10": 0.01899822784136755,
+      "RSI_14": 0.2645899821470702,
+      "MACD": 0.2147750981161844,
+      "MACD_Signal": 0.14544761070597265,
+      "MACD_Hist": 0.06158686018975829,
+      "Bollinger_Upper": 0.026274746708896252,
+      "Bollinger_Lower": 0.023787126860587742,
+      "Bollinger_Mid": 0.021859336966740275
+    },
+    "signal_distribution": {
+      "NONE": 0.9412191582002902,
+      "SELL": 0.038461538461538464,
+      "BUY": 0.020319303338171262
+    },
+    "confidence_stats": {
+      "mean_confidence": 0.9963364079335026,
+      "std_confidence": 0.012499493516420065,
+      "min_confidence": 0.8138804376341002,
+      "max_confidence": 1.0,
+      "median_confidence": 1.0,
+      "confidence_bins": [
+        2,
+        0,
+        2,
+        2,
+        4,
+        12,
+        14,
+        28,
+        76,
+        2616
+      ]
+    },
+    "y_pred": "['NONE' 'NONE' 'NONE' ... 'NONE' 'NONE' 'NONE']",
+    "y_proba": "[[0.00632595 0.99367405 0.        ]\n [0.00632595 0.99367405 0.        ]\n [0.00319537 0.9939396  0.00286503]\n ...\n [0.         1.         0.        ]\n [0.         1.         0.        ]\n [0.         1.         0.        ]]"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "ticker": "AAPL",
+  "model_type": "randomforest",
+  "feature_columns": [
+    "Price",
+    "Adj Close",
+    "Close",
+    "High",
+    "Low",
+    "Open",
+    "Volume",
+    "Candle_Body",
+    "Upper_Shadow",
+    "Lower_Shadow",
+    "Volatility",
+    "Close_pct_change",
+    "Volume_pct_change",
+    "EMA_5",
+    "EMA_10",
+    "SMA_5",
+    "SMA_10",
+    "RSI_14",
+    "MACD",
+    "MACD_Signal",
+    "MACD_Hist",
+    "Bollinger_Upper",
+    "Bollinger_Lower",
+    "Bollinger_Mid"
+  ],
+  "training_timestamp": "20250707_140046",
+  "evaluation_results": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "classification_report": {
+      "BUY": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 28.0
+      },
+      "SELL": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 27.0
+      },
+      "nan": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 689.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 744.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 744.0
+      }
+    },
+    "confusion_matrix": "[[ 28   0   0]\n [  0  27   0]\n [  0   0 689]]",
+    "feature_importance": {
+      "Price": 0.0,
+      "Adj Close": 0.0,
+      "Close": 0.04473614504884402,
+      "High": 0.02845266116667941,
+      "Low": 0.029815456716143263,
+      "Open": 0.024952228954366884,
+      "Volume": 0.015209317099986836,
+      "Candle_Body": 0.007319808366764407,
+      "Upper_Shadow": 0.004966572640270185,
+      "Lower_Shadow": 0.007211259879066196,
+      "Volatility": 0.014520882558478304,
+      "Close_pct_change": 0.021983350903580553,
+      "Volume_pct_change": 0.006328301144361821,
+      "EMA_5": 0.028026933425218902,
+      "EMA_10": 0.014473570663065788,
+      "SMA_5": 0.023049145840459893,
+      "SMA_10": 0.02076713720762531,
+      "RSI_14": 0.31179502005936577,
+      "MACD": 0.15847819822815973,
+      "MACD_Signal": 0.10907461961221183,
+      "MACD_Hist": 0.06938733413093026,
+      "Bollinger_Upper": 0.020338729785679056,
+      "Bollinger_Lower": 0.02423558259935435,
+      "Bollinger_Mid": 0.014877743969387233
+    },
+    "signal_distribution": {
+      "nan": 0.9260752688172043,
+      "BUY": 0.03763440860215054,
+      "SELL": 0.036290322580645164
+    },
+    "confidence_stats": {
+      "mean_confidence": 0.9795081391064501,
+      "std_confidence": 0.04390425939141882,
+      "min_confidence": 0.6731059914192317,
+      "max_confidence": 1.0,
+      "median_confidence": 0.9948133102743664,
+      "confidence_bins": [
+        3,
+        4,
+        3,
+        6,
+        2,
+        5,
+        14,
+        30,
+        52,
+        625
+      ]
+    },
+    "y_pred": "['nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'SELL' 'SELL' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'BUY'\n 'nan' 'nan' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'SELL' 'SELL' 'SELL' 'SELL'\n 'SELL' 'SELL' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'BUY' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'SELL' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'SELL' 'SELL' 'SELL' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'BUY' 'BUY'\n 'BUY' 'BUY' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'BUY' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'SELL' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'BUY' 'BUY' 'BUY' 'BUY' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'BUY'\n 'BUY' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'SELL' 'SELL' 'SELL' 'SELL' 'SELL' 'SELL' 'SELL' 'SELL'\n 'SELL' 'SELL' 'SELL' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'SELL'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'SELL' 'SELL' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan' 'nan'\n 'nan' 'nan' 'nan' 'nan' 'nan']",
+    "y_proba": "[[0.         0.00298268 0.99701732]\n [0.         0.         1.        ]\n [0.         0.00638143 0.99361857]\n ...\n [0.         0.         1.        ]\n [0.         0.01277562 0.98722438]\n [0.         0.00629871 0.99370129]]"
+  }
+}

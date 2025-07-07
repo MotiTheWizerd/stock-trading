@@ -1,0 +1,15 @@
+# Core ML & data processing
+pandas>=2.0
+numpy>=1.25
+scikit-learn>=1.4
+joblib>=1.4
+
+# Scheduling
+schedule>=1.2
+
+# Plotting (used by utils.plot_candlestick)
+matplotlib>=3.8
+mplfinance>=0.12
+
+# Others (ensure proper timezone handling etc.)
+pytz>=2024.1
