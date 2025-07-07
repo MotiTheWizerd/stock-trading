@@ -29,8 +29,29 @@ dependencies = [
 ]
 
 [tool.poetry]
-package-mode = false
+packages = [
+    { include = "trading", from = "src" },
+    { include = "tests", format = "sdist" }
+]
+
+[tool.poetry.scripts]
+trading = "trading.cli:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = [".", "src"]
+addopts = "-v --import-mode=importlib"
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::pytest.PytestCollectionWarning",
+    "ignore::pytest.PytestConfigWarning",
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::ResourceWarning",
+    "ignore:TA-Lib not installed"
+]

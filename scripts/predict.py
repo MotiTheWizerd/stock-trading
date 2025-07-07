@@ -28,21 +28,19 @@ try:
 except ImportError:
     ENHANCED_AVAILABLE = False
 
+
+
+logger = logging.getLogger(__name__)
+
+
 def _norm(col: str) -> str:
-    """
-    Normalize a column name:
-    • lower-case
-    • strip spaces
-    • replace punctuation with nothing
-    """
+    """Normalize a column name for loose matching (lower, strip, no punctuation)."""
     return (
         str(col).lower()
         .replace(" ", "")
         .replace("_", "")
         .replace("-", "")
     )
-
-logger = logging.getLogger(__name__)
 
 def setup_logging():
     """Configure logging for the prediction script."""
@@ -83,11 +81,13 @@ class StockPredictor:
         else:
             # Handle as a regular ticker
             self.ticker = ticker_str.upper()
-            # Set model directory
+            # Set model directory - look in models/ticker/
             if model_dir:
                 self.model_dir = Path(model_dir)
             else:
                 self.model_dir = Path("models") / self.ticker
+                # Ensure directory exists
+                self.model_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize model and feature columns
         self.model = None
@@ -109,13 +109,19 @@ class StockPredictor:
             if not self.model_dir.exists():
                 raise FileNotFoundError(f"Model directory not found: {self.model_dir}")
             
-            # Find the latest model file
-            model_files = list(self.model_dir.glob("*.joblib")) + list(self.model_dir.glob("*.pkl"))
-            if not model_files:
-                raise FileNotFoundError(f"No model files found in {self.model_dir}")
-            
-            # Sort by modification time (newest first)
-            model_file = sorted(model_files, key=lambda f: f.stat().st_mtime, reverse=True)[0]
+            # Find candidate model files (exclude pure calibrators)
+            logger.info(f"Searching for model files in: {self.model_dir.absolute()}")
+            all_files = list(self.model_dir.glob("*.joblib")) + list(self.model_dir.glob("*.pkl"))
+            logger.info(f"Found {len(all_files)} model files: {[f.name for f in all_files]}")
+            if not all_files:
+                raise FileNotFoundError(f"No model files found in {self.model_dir.absolute()}")
+
+            # Prefer base models (those NOT ending with '_calibrated.joblib')
+            base_models = [f for f in all_files if not f.name.endswith('_calibrated.joblib')]
+            search_pool = base_models if base_models else all_files  # fallback to any if only calibrators present
+
+            # Pick the newest file in the chosen pool
+            model_file = max(search_pool, key=lambda f: f.stat().st_mtime)
         
         # Load the model
         logger.info(f"✅ Loading model from: {model_file}")
@@ -886,7 +892,10 @@ def main():
     if not use_enhanced:
         # Create standard predictor
         logger.info("Using standard prediction system")
-        predictor = StockPredictor(args.ticker, model_dir=str(model_path.parent) if model_path else None)
+        # Use the correct model directory structure: models/AAPL/
+        ticker_model_dir = Path("models") / args.ticker
+        logger.info(f"Looking for models in: {ticker_model_dir.absolute()}")
+        predictor = StockPredictor(args.ticker, model_dir=str(ticker_model_dir))
         
         # Make predictions
         logger.info("Making predictions")
@@ -982,21 +991,40 @@ def main():
         if 'cash' in filtered_predictions.columns:
             display_cols.append('cash')
             
-        # Add balance and P/L columns
-        display_cols.extend(['balance', 'P/L ($)', 'P/L (%)'])
+        # Only keep columns that exist in the DataFrame
+        display_cols = [col for col in display_cols if col in filtered_predictions.columns]
         
+        # Filter out NONE predictions if they exist
+        if 'prediction' in filtered_predictions.columns:
+            signals_df = filtered_predictions[filtered_predictions['prediction'] != 'NONE'].copy()
+        else:
+            signals_df = filtered_predictions.copy()
+            
         # Format the output
         pd.set_option('display.float_format', '{:,.2f}'.format)
-        pd.set_option('display.max_rows', None)  # Show all rows
+        pd.set_option('display.max_rows', 100)  # Show up to 100 rows
         
-        print("\n📊 Trading Performance (Starting Balance: $1,000.00)")
-        print("-" * 160)
-        print("Signal Quality:")
-        print("  ✅ Correct Prediction  ❌ Incorrect Prediction  ➖ No Signal")
-        print("\nRisk Indicators:")
-        print("  🟢 Low Risk (LR)  🔴 High Risk (HR)")
-        print("-" * 160)
-        print(filtered_predictions[display_cols].to_string(index=False))
+        if not signals_df.empty:
+            print(f"\n📊 Trading Signals (Showing {len(signals_df)} non-NONE signals)")
+            print("-" * 120)
+            print("Signal Quality:")
+            print("  ✅ Correct Prediction  ❌ Incorrect Prediction  ➖ No Signal")
+            
+            # Only show risk indicators if we have risk data
+            if any(col in signals_df.columns for col in ['risk_tier', 'risk_score']):
+                print("\nRisk Indicators:")
+                print("  🟢 Low Risk (LR)  🔴 High Risk (HR)")
+                
+            print("-" * 120)
+            
+            # Ensure datetime is in the display if available
+            if 'datetime' in signals_df.columns:
+                display_cols = ['datetime'] + [col for col in display_cols if col != 'datetime']
+                
+            print(signals_df[display_cols].to_string(index=False))
+            print(f"\nTotal signals found: {len(signals_df)}")
+        else:
+            print("\n⚠️ No trading signals found (all predictions are NONE)")
     
     # Print summary with risk tiers if available, otherwise fall back to basic summary
     if 'prediction' in results.columns:

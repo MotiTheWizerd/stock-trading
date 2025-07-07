@@ -2,26 +2,40 @@
 # -*- coding: utf-8 -*-
 
 """
-Test script for the enhanced prediction integration.
+Enhanced Prediction Integration Test
 
-This script tests the integration between the existing stock prediction system
-and the enhanced prediction components.
+This script tests different prediction strategies and evaluates their performance
+using comprehensive metrics and visualizations.
 """
 
 import os
 import sys
 import logging
 import pandas as pd
+import numpy as np
+from datetime import datetime
+import logging
 from pathlib import Path
-import argparse
+import sys
+import os
+from typing import Dict, Any, Optional
 
-# Configure logging
-logging.basicConfig(
-    level=logging.WARNING,  # Reduced from INFO to WARNING to reduce verbosity
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()]
-)
-logger = logging.getLogger(__name__)
+# Add project root and src directory to path
+project_root = Path(__file__).parent
+src_dir = project_root / "src"
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(src_dir))
+
+from trading.models.enhanced_prediction import EnhancedStockPredictor
+from trading.backtest.backtest_analyzer import BacktestAnalyzer
+from results_ui import ResultsRenderer
+from trading.models.enhanced_trader import EnhancedTrader
+
+# Configure enhanced Rich logging
+from trading.utils.rich_logger import setup_rich_logging
+
+# Set up Rich-based logging with enhanced visual formatting
+logger = setup_rich_logging(level=logging.INFO)
 
 # Configure specific loggers to be less verbose
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
@@ -30,234 +44,376 @@ logging.getLogger('ta').setLevel(logging.WARNING)
 logging.getLogger('feature_engineer').setLevel(logging.WARNING)
 logging.getLogger('contextual_features').setLevel(logging.WARNING)
 
-# Custom formatter to remove timestamps
-class CleanFormatter(logging.Formatter):
-    def format(self, record):
-        if record.levelno >= logging.WARNING:
-            return f"[!] {record.msg}"
-        return record.msg
-
-# Apply custom formatter to root logger
-for handler in logging.root.handlers:
-    handler.setFormatter(CleanFormatter())
+class PredictionTester:
+    def __init__(self, ticker: str, data_dir: str = "data", models_dir: str = "models"):
+        self.ticker = ticker
+        self.data_dir = Path(data_dir)
+        self.models_dir = Path(models_dir) / ticker
+        self.initial_balance = 10000.0
+        
+        # Initialize analyzer and renderer
+        self.analyzer = BacktestAnalyzer(initial_balance=self.initial_balance)
+        self.renderer = ResultsRenderer()
+        
+    def load_data(self, data_file: Optional[str] = None) -> pd.DataFrame:
+        """Load and prepare market data."""
+        if data_file:
+            data_path = Path(data_file)
+            if not data_path.exists():
+                raise FileNotFoundError(f"Data file not found: {data_path}")
+            df = pd.read_csv(data_path)
+            logger.info(f"Loaded data from {data_path}")
+        else:
+            # Try to load data from the data directory
+            try:
+                from predict import load_latest_data
+                df = load_latest_data(self.ticker, str(self.data_dir))
+                if df is None or df.empty:
+                    raise ValueError(f"No data found for {self.ticker}")
+                logger.info(f"Loaded latest data for {self.ticker}")
+            except ImportError:
+                # Fallback to direct file loading
+                data_files = list((self.data_dir / self.ticker).glob("*.csv"))
+                if not data_files:
+                    raise FileNotFoundError(f"No data files found in {self.data_dir/self.ticker}")
+                latest_file = max(data_files, key=lambda x: x.stat().st_mtime)
+                df = pd.read_csv(latest_file)
+                logger.info(f"Loaded {latest_file}")
+                
+        # Ensure required columns exist
+        required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+        for col in required_cols:
+            if col not in df.columns:
+                raise ValueError(f"Required column not found in data: {col}")
+                
+        return df
+    
+    def find_latest_model(self) -> Path:
+        """Find the latest trained model."""
+        if not self.models_dir.exists():
+            raise FileNotFoundError(f"Model directory not found: {self.models_dir}")
+            
+        model_files = list(self.models_dir.glob("*.joblib"))
+        if not model_files:
+            raise FileNotFoundError(f"No model files found in {self.models_dir}")
+            
+        # Sort by modification time (newest first)
+        return sorted(model_files, key=lambda f: f.stat().st_mtime, reverse=True)[0]
+    
+    def run_strategy(self, df: pd.DataFrame, strategy_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Run a single strategy with enhanced trader and return metrics."""
+        try:
+            # Make a copy of the input data
+            df = df.copy()
+            
+            # Initialize enhanced trader for this strategy
+            trader = EnhancedTrader(
+                ticker=self.ticker,
+                initial_balance=self.initial_balance,
+                journal_output_dir=f"trade_journals/{strategy_config['name']}"
+            )
+            
+            if strategy_config["use_enhanced"]:
+                # Use enhanced prediction with trader integration
+                predictions = self._run_enhanced_strategy_with_trader(df, strategy_config, trader)
+            else:
+                # Use standard prediction with trader integration
+                predictions = self._run_standard_strategy_with_trader(df, strategy_config, trader)
+            
+            if predictions is None or predictions.empty:
+                logger.warning(f"No predictions generated for {strategy_config['name']}")
+                return {}
+                
+            # Calculate metrics using the trader's performance
+            price_series = df['Close'] if 'Close' in df.columns else None
+            metrics = self.analyzer.calculate_metrics(predictions, price_series)
+            
+            # Add enhanced trader metrics
+            trader_performance = trader.get_performance_summary()
+            metrics.update({
+                'strategy': strategy_config['name'],
+                'confidence_threshold': strategy_config['confidence_threshold'],
+                'trader_performance': trader_performance,
+                'journal_entries': len(trader.journal.entries)
+            })
+            
+            # Save results
+            output_dir = Path("test_results") / strategy_config['name']
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save predictions
+            predictions_file = output_dir / f"{self.ticker}_predictions.csv"
+            predictions.to_csv(predictions_file, index=False)
+            
+            # Save trader results and journal
+            trades_file, journal_file = trader.save_results(str(output_dir))
+            
+            logger.info(f"Strategy {strategy_config['name']} completed:")
+            logger.info(f"  - Predictions: {predictions_file}")
+            logger.info(f"  - Journal: {journal_file}")
+            if trades_file:
+                logger.info(f"  - Trades: {trades_file}")
+            
+            # Print trader summary
+            trader.print_summary()
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Error running strategy {strategy_config['name']}: {str(e)}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return {}
+    
+    def _run_enhanced_strategy_with_trader(self, df: pd.DataFrame, strategy_config: Dict[str, Any], trader: EnhancedTrader) -> pd.DataFrame:
+        """Run enhanced prediction strategy with trader integration."""
+        try:
+            # Initialize enhanced predictor
+            enhanced_pred = EnhancedStockPredictor(
+                model_path=strategy_config.get("model_path"),
+                confidence_threshold=strategy_config["confidence_threshold"],
+                enable_contextual_features=strategy_config["enable_contextual"],
+                enable_calibration=strategy_config["enable_calibration"]
+            )
+            
+            # Load the model
+            enhanced_pred.load_model()
+            
+            # Get predictions for the entire dataset
+            predictions_df = enhanced_pred.predict(df, apply_trading=False)
+            
+            if predictions_df is None or predictions_df.empty:
+                logger.warning("No predictions generated from enhanced model")
+                return pd.DataFrame()
+            
+            # Process each prediction with the trader
+            results = []
+            for idx, pred_row in predictions_df.iterrows():
+                signal = pred_row.get('prediction', 'NONE')
+                confidence = pred_row.get('confidence', 0.0)
+                risk_score = pred_row.get('risk_score')
+                
+                # Apply confidence threshold
+                if confidence < strategy_config["confidence_threshold"]:
+                    signal = 'NONE'
+                
+                # Get corresponding market data
+                market_data = df.iloc[idx] if idx < len(df) else df.iloc[-1]
+                
+                # Process with trader (includes journal logging)
+                trade_result = trader.process_signal(
+                    data_row=market_data,
+                    signal=signal,
+                    confidence=confidence,
+                    risk_score=risk_score,
+                    model_metadata={
+                        'model_type': 'enhanced',
+                        'contextual_enabled': strategy_config["enable_contextual"],
+                        'calibration_enabled': strategy_config["enable_calibration"]
+                    }
+                )
+                
+                # Combine prediction and trade results
+                result_row = {
+                    'timestamp': idx,
+                    'prediction': signal,
+                    'confidence': confidence,
+                    'risk_score': risk_score,
+                    'position_taken': trade_result['position_action'],
+                    'trade_executed': trade_result['trade_result'].get('executed', False),
+                    'portfolio_value': trade_result['portfolio_value'],
+                    'price': market_data.get('Close', 0),
+                    'balance': trader.current_balance,
+                    'position': trader.position
+                }
+                
+                # Add original prediction columns
+                for col in pred_row.index:
+                    if col not in result_row:
+                        result_row[col] = pred_row[col]
+                
+                # Add original market data columns
+                for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+                    if col in market_data:
+                        result_row[f'market_{col}'] = market_data[col]
+                
+                results.append(result_row)
+            
+            return pd.DataFrame(results)
+            
+        except Exception as e:
+            logger.error(f"Error in enhanced strategy: {str(e)}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return pd.DataFrame()
+    
+    def _run_standard_strategy_with_trader(self, df: pd.DataFrame, strategy_config: Dict[str, Any], trader: EnhancedTrader) -> pd.DataFrame:
+        """Run standard prediction strategy with trader integration."""
+        try:
+            from predict import StockPredictor
+            
+            # Initialize standard predictor
+            predictor = StockPredictor(self.ticker, model_dir=str(self.models_dir))
+            
+            # Get predictions for all data
+            predictions_df = predictor.predict(df)
+            
+            if predictions_df is None or predictions_df.empty:
+                return pd.DataFrame()
+            
+            # Process each prediction with the trader
+            results = []
+            for idx, row in predictions_df.iterrows():
+                signal = row.get('prediction', 'NONE')
+                confidence = row.get('confidence', 0.0)
+                
+                # Apply confidence threshold
+                if confidence < strategy_config["confidence_threshold"]:
+                    signal = 'NONE'
+                
+                # Get corresponding market data
+                market_data = df.iloc[idx] if idx < len(df) else df.iloc[-1]
+                
+                # Process with trader (includes journal logging)
+                trade_result = trader.process_signal(
+                    data_row=market_data,
+                    signal=signal,
+                    confidence=confidence,
+                    risk_score=None,  # Standard predictor doesn't provide risk scores
+                    model_metadata={'model_type': 'standard'}
+                )
+                
+                # Combine prediction and trade results
+                result_row = {
+                    'timestamp': idx,
+                    'prediction': signal,
+                    'confidence': confidence,
+                    'risk_score': None,
+                    'position_taken': trade_result['position_action'],
+                    'trade_executed': trade_result['trade_result'].get('executed', False),
+                    'portfolio_value': trade_result['portfolio_value'],
+                    'price': market_data.get('Close', 0),
+                    'balance': trader.current_balance,
+                    'position': trader.position
+                }
+                
+                # Add original prediction columns
+                for col in row.index:
+                    if col not in result_row:
+                        result_row[col] = row[col]
+                
+                results.append(result_row)
+            
+            return pd.DataFrame(results)
+            
+        except Exception as e:
+            logger.error(f"Error in standard strategy: {str(e)}")
+            return pd.DataFrame()
 
 def main():
-    """Main function to test the enhanced prediction integration."""
-    parser = argparse.ArgumentParser(description="Test enhanced prediction integration")
+    """Main function to run the strategy comparison."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Test and compare prediction strategies")
     parser.add_argument("--ticker", type=str, default="AAPL", help="Stock ticker symbol")
     parser.add_argument("--model", type=str, help="Model file to use (default: latest model)")
     parser.add_argument("--data-file", type=str, help="Data file to use for testing")
-    parser.add_argument("--output-dir", type=str, default="test_results", help="Output directory for test results")
+    parser.add_argument("--output-dir", type=str, default="test_results", 
+                       help="Output directory for test results")
     
     args = parser.parse_args()
     
-    # Create output directory if it doesn't exist
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Check if enhanced modules are available
     try:
-        import enhanced_integration
-        logger.info("Enhanced integration module found")
+        # Initialize tester
+        tester = PredictionTester(
+            ticker=args.ticker,
+            data_dir="data",
+            models_dir="models"
+        )
         
-        # Check which enhanced modules are available
-        modules_available = enhanced_integration.check_enhanced_modules()
-        for module, available in enhanced_integration.ENHANCED_MODULES.items():
-            status = "✅" if available else "❌"
-            logger.info(f"{status} {module}")
+        # Load data
+        df = tester.load_data(args.data_file)
         
-        if not all(enhanced_integration.ENHANCED_MODULES.values()):
-            logger.warning("Not all enhanced modules are available")
-    except ImportError:
-        logger.error("Enhanced integration module not found")
-        return 1
-    
-    # Load data
-    if args.data_file:
-        data_path = Path(args.data_file)
-        if not data_path.exists():
-            logger.error(f"Data file not found: {data_path}")
-            return 1
+        # Find model if not specified
+        model_path = args.model if args.model else tester.find_latest_model()
+        logger.info(f"Using model: {model_path}")
         
-        df = pd.read_csv(data_path)
-        logger.info(f"Loaded data from {data_path}")
-    else:
-        # Try to load data from the data directory
-        try:
-            from predict import load_latest_data
-            df = load_latest_data(args.ticker, "data")
-            if df is None or df.empty:
-                logger.error(f"No data found for {args.ticker}")
-                return 1
-            logger.info(f"Loaded latest data for {args.ticker}")
-        except Exception as e:
-            logger.error(f"Error loading data: {e}")
-            import traceback
-            traceback.print_exc()
-            return 1
-    
-    # Determine model path
-    if args.model:
-        model_path = Path(args.model)
-    else:
-        # Try to find the latest model
-        model_dir = Path("models") / args.ticker
-        if not model_dir.exists():
-            logger.error(f"Model directory not found: {model_dir}")
-            return 1
+        # Define test configurations
+        test_configs = [
+            {
+                "name": "standard_prediction",
+                "use_enhanced": False,
+                "model_path": model_path,
+                "confidence_threshold": 0.6,
+                "enable_contextual": False,
+                "enable_calibration": False
+            },
+            {
+                "name": "enhanced_basic",
+                "use_enhanced": True,
+                "model_path": model_path,
+                "confidence_threshold": 0.6,
+                "enable_contextual": True,
+                "enable_calibration": True
+            },
+            {
+                "name": "enhanced_no_contextual",
+                "use_enhanced": True,
+                "model_path": model_path,
+                "confidence_threshold": 0.6,
+                "enable_contextual": False,
+                "enable_calibration": True
+            },
+            {
+                "name": "enhanced_no_calibration",
+                "use_enhanced": True,
+                "model_path": model_path,
+                "confidence_threshold": 0.6,
+                "enable_contextual": True,
+                "enable_calibration": False
+            },
+            {
+                "name": "enhanced_high_confidence",
+                "use_enhanced": True,
+                "model_path": model_path,
+                "confidence_threshold": 0.8,
+                "enable_contextual": True,
+                "enable_calibration": True
+            }
+        ]
         
-        model_files = list(model_dir.glob("*.joblib"))
-        if not model_files:
-            logger.error(f"No model files found in {model_dir}")
-            return 1
-        
-        # Sort by modification time (newest first)
-        model_path = sorted(model_files, key=lambda f: f.stat().st_mtime, reverse=True)[0]
-    
-    logger.info(f"Using model: {model_path}")
-    
-    # Run tests for different configurations
-    test_configs = [
-        {
-            "name": "standard_prediction",
-            "use_enhanced": False,
-            "confidence_threshold": 0.6,
-            "enable_contextual": False,
-            "enable_calibration": False
-        },
-        {
-            "name": "enhanced_basic",
-            "use_enhanced": True,
-            "confidence_threshold": 0.6,
-            "enable_contextual": True,
-            "enable_calibration": True
-        },
-        {
-            "name": "enhanced_no_contextual",
-            "use_enhanced": True,
-            "confidence_threshold": 0.6,
-            "enable_contextual": False,
-            "enable_calibration": True
-        },
-        {
-            "name": "enhanced_no_calibration",
-            "use_enhanced": True,
-            "confidence_threshold": 0.6,
-            "enable_contextual": True,
-            "enable_calibration": False
-        },
-        {
-            "name": "enhanced_high_confidence",
-            "use_enhanced": True,
-            "confidence_threshold": 0.8,
-            "enable_contextual": True,
-            "enable_calibration": True
-        }
-    ]
-    
-    results = {}
-    
-    for config in test_configs:
-        logger.info(f"Running test: {config['name']}")
-        
-        if config["use_enhanced"]:
-            # Use enhanced prediction
-            predictions = enhanced_integration.run_enhanced_prediction(
-                df=df,
-                model_path=model_path,
-                confidence_threshold=config["confidence_threshold"],
-                enable_contextual=config["enable_contextual"],
-                enable_calibration=config["enable_calibration"],
-                apply_trading=True,
-                initial_balance=1000.0
-            )
-            
-            if predictions is None:
-                logger.error(f"Enhanced prediction failed for {config['name']}")
-                continue
-        else:
-            # Use standard prediction
-            try:
-                from predict import StockPredictor, apply_trader
-                
-                predictor = StockPredictor(args.ticker, model_dir=str(model_path.parent))
-                predictions = predictor.predict(df)
-                
-                # Filter by confidence
-                predictions.loc[predictions['confidence'] < config["confidence_threshold"], 'prediction'] = 'NONE'
-                
-                # Apply trading engine
-                predictions = apply_trader(predictions, initial_balance=1000.0)
-            except Exception as e:
-                logger.error(f"Standard prediction failed for {config['name']}: {e}")
-                import traceback
-                traceback.print_exc()
-                continue
-        
-        # Save predictions
-        output_file = output_dir / f"{args.ticker}_{config['name']}_predictions.csv"
-        predictions.to_csv(output_file, index=False)
-        logger.info(f"Saved predictions to {output_file}")
-        
-        # Calculate metrics
-        metrics = {
-            "total_predictions": len(predictions),
-            "buy_signals": len(predictions[predictions['prediction'] == 'BUY']),
-            "sell_signals": len(predictions[predictions['prediction'] == 'SELL']),
-            "none_signals": len(predictions[predictions['prediction'] == 'NONE']),
-        }
-        
-        # Add trading metrics if available
-        if 'final_balance' in predictions.columns:
-            initial_balance = 1000.0
-            final_balance = predictions['final_balance'].iloc[-1]
-            profit = final_balance - initial_balance
-            profit_pct = (profit / initial_balance) * 100
-            
-            metrics.update({
-                "initial_balance": initial_balance,
-                "final_balance": final_balance,
-                "profit": profit,
-                "profit_pct": profit_pct
-            })
-            
-            if 'max_drawdown' in predictions.columns:
-                metrics["max_drawdown"] = predictions['max_drawdown'].max()
-        
-        results[config['name']] = metrics
-    
-    # Print comparison
-    print("\n=== Test Results Comparison ===")
-    print("-" * 80)
-    
-    # Print header
-    header = ["Metric"]
-    for config in test_configs:
-        header.append(config['name'])
-    print(" | ".join(header))
-    print("-" * 80)
-    
-    # Print metrics
-    all_metrics = set()
-    for metrics in results.values():
-        all_metrics.update(metrics.keys())
-    
-    for metric in sorted(all_metrics):
-        row = [metric]
+        # Run all strategies
+        all_results = {}
         for config in test_configs:
-            if config['name'] in results and metric in results[config['name']]:
-                value = results[config['name']][metric]
-                if isinstance(value, float):
-                    row.append(f"{value:.2f}")
-                else:
-                    row.append(str(value))
+            logger.info(f"\n{'='*80}")
+            logger.info(f"Running strategy: {config['name']}")
+            logger.info(f"Configuration: {config}")
+            
+            metrics = tester.run_strategy(df, config)
+            if metrics:
+                all_results[config['name']] = metrics
+                logger.info(f"Completed {config['name']}")
             else:
-                row.append("N/A")
-        print(" | ".join(row))
-    
-    print("-" * 80)
-    print("Test completed successfully")
-    return 0
+                logger.warning(f"Skipping {config['name']} - no results")
+        
+        # Display results
+        if all_results:
+            tester.renderer.display_results(
+                all_results,
+                strategy_names=list(all_results.keys()),
+                title=f"Strategy Comparison - {args.ticker}"
+            )
+        else:
+            logger.error("No valid results to display")
+            return 1
+            
+        return 0
+        
+    except Exception as e:
+        logger.error(f"Error: {str(e)}")
+        import traceback
+        logger.debug(traceback.format_exc())
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())

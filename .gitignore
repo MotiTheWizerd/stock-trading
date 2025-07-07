@@ -36,8 +36,6 @@ ENV/
 .ipynb_checkpoints
 
 # Local data files
-data/
-!data/README.md  # Keep README if it exists
 
 # Logs
 *.log

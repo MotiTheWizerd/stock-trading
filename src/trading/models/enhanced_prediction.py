@@ -24,8 +24,16 @@ import joblib
 import argparse
 
 # Import custom modules
-from contextual_features import ContextualFeatureGenerator
-from model_calibration import ModelCalibrator
+from trading.features.contextual_features import ContextualFeatureGenerator
+from trading.models.model_calibration import ModelCalibrator
+
+# Import from scripts directory
+import sys
+from pathlib import Path
+scripts_dir = Path(__file__).resolve().parent.parent.parent.parent / "scripts"
+sys.path.insert(0, str(scripts_dir))
+
+# Import from scripts
 from adaptive_retraining import AdaptiveRetrainer
 from predict import StockPredictor, apply_trader
 

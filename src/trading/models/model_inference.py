@@ -33,8 +33,8 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from feature_engineer import FeatureEngineer
-from paths import get_data_path, get_models_path
+from trading.features.feature_engineer import FeatureEngineer
+from trading.io.paths import get_data_path, get_models_path
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,8 @@ class ModelInference:
         self.model = None
         self.model_metadata = None
         self.feature_columns = []
+        # Placeholder for probability calibrator (Platt/Isotonic). Loaded alongside the model if available.
+        self.calibrator: Optional[object] = None
         
     def load_model(self, model_path: Optional[Path] = None) -> None:
         """Load a trained model for inference.
@@ -71,6 +73,24 @@ class ModelInference:
             raise FileNotFoundError(f"Model file not found: {model_path}")
         
         self.model = joblib.load(model_path)
+        # Attempt to load a companion calibrated model if it exists
+        calib_path = model_path.with_name(model_path.stem + "_calibrated.joblib")
+        if calib_path.exists():
+            try:
+                self.calibrator = joblib.load(calib_path)
+                logger.info(f"✅ Calibrated model loaded: {calib_path.name}")
+            except Exception as e:
+                logger.warning(f"Failed to load calibrated model: {e}")
+                self.calibrator = None
+        else:
+            self.calibrator = None
+
+        # Warn if no calibrator is available – helps reveal silent fallbacks to raw probabilities
+        if self.calibrator is None:
+            logger.warning(
+                "⚠️ Calibrator missing for model '%s'. Probabilities will be uncalibrated.",
+                model_path.name,
+            )
         
         # Load metadata
         metadata_path = self._get_metadata_path(model_path)
@@ -114,8 +134,18 @@ class ModelInference:
         features_df = self._prepare_features(data)
         
         # Make predictions
+        if hasattr(self.model, "predict_proba"):
+            raw_prob = self.model.predict_proba(features_df)
+        else:
+            raw_prob = None
+
+        # If a calibrator exists use it to get calibrated probabilities
+        if self.calibrator is not None:
+            probabilities = self.calibrator.predict_proba(features_df)
+        else:
+            probabilities = raw_prob if raw_prob is not None else None
+
         predictions = self.model.predict(features_df)
-        probabilities = self.model.predict_proba(features_df)
         
         # Format results
         results = []
@@ -128,7 +158,10 @@ class ModelInference:
             probabilities = [probabilities]
             
         for i, (pred, prob) in enumerate(zip(predictions, probabilities)):
-            confidence = np.max(prob) if isinstance(prob, (list, np.ndarray)) else prob
+            # Raw probability confidence
+            confidence_raw = float(np.max(probabilities[i])) if probabilities is not None else float(np.max(raw_prob[i])) if raw_prob is not None else None
+            # Cap to 3-decimal places for logging / downstream use
+            confidence = round(confidence_raw, 3) if confidence_raw is not None else None
             
             # Apply confidence threshold
             if confidence < self.confidence_threshold:
